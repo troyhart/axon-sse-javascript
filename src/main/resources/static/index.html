@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>axon-sse-javascript</title>
+
+  <style>
+    .button-bar {
+      text-align: right;
+    }
+    input {
+      margin:  .5em;
+      width: 100%;
+    }
+    form {
+      margin-left: 1em;
+      margin-right: 1em;
+      max-width: 500px;
+    }
+  </style>
+  <!-- POLYFILL: https://github.com/Yaffle/EventSource -->
+  <script src="/eventsource.min.js"></script>
+</head>
+<body>
+
+<h1>Current Subscription</h1>
+<form>
+  <label for="packageId">Package Identifier</label>
+  <input id="packageId" type="text"/>
+  <div class="button-bar">
+    <button onclick="subscribe()" type="button">Subscribe</button>
+    <button onclick="unsubscribe()" type="button">Unsubscribe</button>
+  </div>
+</form>
+
+<h1>Messages Stack</h1>
+<div>
+  <ul id="messages"></ul>
+</div>
+
+<script type="application/javascript">
+  var eventSource;
+  var currentId;
+  var elements = document.getElementById("messages");
+
+  function subscribe() {
+    if (currentId) {
+      eventSource.close();
+    }
+
+    currentId = document.getElementById("packageId").value;
+
+    if (currentId) {
+      var jwt = 'my.token.value'; // use auth service for actual JWTs...
+      eventSource = new EventSourcePolyfill(
+        "/packages/" + currentId + "/subscription", {
+          headers : {
+            authorization : 'bearer ' + jwt
+          }
+        });
+
+      eventSource.onmessage = function (e) {
+        console.log("message received", e);
+        add(e.data);
+      };
+
+      eventSource.onopen = function (e) {
+        add('connection opened');
+      };
+
+      eventSource.onclose = function (e) {
+        add('connection closed');
+      };
+
+      eventSource.onerror = function (e) {
+        if (e.readyState == EventSource.CONNECTING) {
+          add('event: CONNECTING');
+        } else if (e.readyState == EventSource.OPEN) {
+          add('event: OPEN');
+        } else if (e.readyState == EventSource.CLOSING) {
+          add('event: CLOSING');
+        } else if (e.readyState == EventSource.CLOSED) {
+          add('event: CLOSED');
+        }
+      };
+    }
+  }
+
+  function unsubscribe() {
+    if (currentId) {
+      eventSource.close();
+      currentId = null;
+    }
+  }
+
+  function add(message) {
+    var element = document.createElement("li");
+    element.innerHTML = "[" + timestamp() +"]  " + message;
+    if (typeof elements.prepend === "function") {
+      elements.prepend(element);
+    } else {
+      elements.appendChild(element);
+    }
+  }
+
+  function timestamp() {
+    return new Date().toLocaleString('en-US', { hour12: false });
+  }
+</script>
+</body>
+</html>

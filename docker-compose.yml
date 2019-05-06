@@ -1,0 +1,22 @@
+version: '2'
+services:
+  axonserver:
+    image: axoniq/axonserver:4.1.1
+    ports:
+      - 8024:8024
+      - 8124:8124
+    environment:
+      - AXONSERVER_HOSTNAME=axonserver
+    volumes:
+      - demo-axonserver_data:/opt/axonserver/data
+  demo-api-mongodb:
+    image: mongo:3.6.9
+    command: mongod
+    ports:
+      - 27017:27017
+    volumes:
+      - demo-api-mongodb_data:/data/db
+
+volumes:
+  demo-api-mongodb_data:
+  demo-axonserver_data:
